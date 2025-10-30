@@ -1,5 +1,13 @@
 # ✈️ Airline Tweet Sentiment Dashboard  
 
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://airline-sentiment-dashboard-project-dcjiqw474kzy2gsvozciyx.streamlit.app/)
+
+🎯 **Live Demo:**  
+👉 [https://airline-sentiment-dashboard-project-dcjiqw474kzy2gsvozciyx.streamlit.app/](https://airline-sentiment-dashboard-project-dcjiqw474kzy2gsvozciyx.streamlit.app/)
+
+---
+
 ## 📌 Deskripsi Umum
 Proyek ini merupakan tugas akhir mata kuliah **Pengembangan Aplikasi 2025**, dengan fokus pada pembuatan **dashboard interaktif berbasis data dunia nyata**.  
 Dashboard ini menampilkan analisis sentimen publik terhadap maskapai penerbangan berdasarkan data tweet, lengkap dengan pembersihan data, transformasi fitur, dan visualisasi yang interaktif.
