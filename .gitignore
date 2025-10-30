@@ -1,0 +1,17 @@
+# Virtual environment
+.venv/
+venv/
+
+# Cache
+__pycache__/
+*.pyc
+
+# Streamlit cache
+.streamlit/
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+
+# Data pribadi
+Tweets.csv
