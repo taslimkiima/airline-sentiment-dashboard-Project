@@ -1,7 +1,10 @@
-streamlit>=1.36
-pandas>=2.0
-numpy>=1.26
-plotly>=5.20
-matplotlib>=3.8
-wordcloud>=1.9
+# requirements.txt
+streamlit>=1.36.0
+pandas>=2.0.0
+numpy>=1.26.0
+plotly>=5.20.0
+matplotlib>=3.8.0
+wordcloud>=1.9.0
+# textblob memerlukan nltk, pastikan ini terinstal
 textblob
+nltk
