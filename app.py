@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL)
+# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL & LENGKAP)
 
 import os
 import json
@@ -125,8 +125,19 @@ st.markdown(
         color: var(--text); 
         font-weight: 600; 
     }}
+    
+    /* === PERBAIKAN KPI: Memaksa warna teks metric menjadi warna utama === */
+    [data-testid="stMetricValue"] {{
+        color: var(--text) !important; /* Angka besar: 6,196 */
+        font-weight: 700;
+    }}
+    [data-testid="stMetricLabel"] {{
+        color: var(--muted) !important; /* Label kecil: Total Tweets */
+        font-weight: 500;
+    }}
+    /* === END PERBAIKAN KPI === */
 
-    /* Pastikan semua teks UI, termasuk metrik dan caption, terlihat */
+    /* Pastikan semua teks umum terlihat */
     .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart {{
       color: var(--text);
     }}
@@ -151,14 +162,14 @@ st.markdown(
         color: var(--text);
     }}
 
-    /* === Teks Download Button (stDownloadButton) === */
+    /* Teks Download Button (stDownloadButton) */
     [data-testid="stDownloadButton"] > button {{
         color: var(--text) !important; 
         background-color: var(--card);
         border: 1px solid var(--muted);
     }}
     
-    /* === Teks Tabs (stTabs) === */
+    /* Teks Tabs (stTabs) */
     [data-testid="stTabs"] button {{
         color: var(--muted) !important; 
     }}
