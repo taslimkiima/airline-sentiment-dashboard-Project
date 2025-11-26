@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL DENGAN TAB SELAMAT DATANG)
+# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL)
 
 import os
 import json
@@ -98,38 +98,56 @@ st.markdown(
       background-color: var(--bg);
       color: var(--text);
     }}
+    
     /* Pastikan teks sidebar terlihat */
+    [data-testid="stSidebar"] {{
+        background-color: var(--card);
+        color: var(--text); 
+    }}
     [data-testid="stSidebar"] > div:first-child {{
       background-color: var(--card);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }}
+    
+    /* === Perbaikan 1: Teks Label Input di Sidebar (seperti 'Upload CSV', 'Cari kata') === */
+    [data-testid="stSidebar"] .stMarkdown > p,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] label p, 
+    [data-testid="stSidebar"] [data-testid="stTextInput"] label p, 
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] label p,
+    [data-testid="stSidebar"] [data-testid="stMultiselect"] label p,
+    [data-testid="stSidebar"] [data-testid="stSlider"] label p
+    {{
+        color: var(--text); 
+        font-weight: 600; 
+    }}
+
+    /* Pastikan semua teks UI, termasuk metrik dan caption, terlihat */
+    .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart {{
       color: var(--text);
     }}
-    /* Pastikan semua teks UI, termasuk label, terlihat */
-    .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart, 
-    .stSelectbox label, .stMultiselect label, .stSlider label {{
-      color: var(--text);
-    }}
+
     /* Kontrol Input (Selectbox, Multiselect, Slider) */
     .stSelectbox > div, .stMultiselect > div, .stSlider > div {{
         background-color: var(--input-bg);
         border: 1px solid #ccc;
         color: var(--text);
     }}
-    /* Kotak input teks */
+    
+    /* Kotak input teks (Termasuk field "Cari Kata") */
     .stTextInput > div > div > input {{
         background-color: var(--input-bg);
         color: var(--text);
         border: 1px solid #ccc;
     }}
     
-    /* === PERBAIKAN 1: Teks Download Button (stDownloadButton) === */
+    /* === Perbaikan 2: Teks Download Button (stDownloadButton) === */
     [data-testid="stDownloadButton"] > button {{
         color: var(--text) !important; 
         background-color: var(--card);
         border: 1px solid var(--muted);
     }}
     
-    /* === PERBAIKAN 2: Teks Tabs (stTabs) === */
+    /* === Perbaikan 3: Teks Tabs (stTabs) === */
     [data-testid="stTabs"] button {{
         color: var(--muted) !important; 
     }}
