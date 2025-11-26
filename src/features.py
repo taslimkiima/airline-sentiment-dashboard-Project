@@ -1,9 +1,22 @@
-# src/features.py
+# src/features.py (FINAL)
 import pandas as pd
-from textblob import TextBlob  # menggunakan TextBlob untuk analisis sentimen tambahan
+
+SENTIMENT_ORDER = ["negative", "neutral", "positive"]
+
+def _ensure_cols(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    if "airline_sentiment" not in out.columns: out["airline_sentiment"] = "neutral"
+    if "airline" not in out.columns: out["airline"] = "-"
+    if "is_negative" not in out.columns: out["is_negative"] = (out.get("airline_sentiment", "neutral") == "negative").astype(int)
+    if "topic_delay" not in out.columns: out["topic_delay"] = 0
+    if "hour" not in out.columns: out["hour"] = pd.NA
+    return out
+
 
 def kpi_metrics(df: pd.DataFrame) -> dict:
-    total = len(df)
+    df = _ensure_cols(df)
+    total = int(len(df))
+
     neg_pct = round(100 * df["is_negative"].mean(), 1) if total else 0.0
 
     if (df["is_negative"] == 1).any():
@@ -24,25 +37,65 @@ def kpi_metrics(df: pd.DataFrame) -> dict:
         "delay_share_in_negative_pct": delay_in_neg,
     }
 
+
 def agg_sentiment(df: pd.DataFrame) -> pd.DataFrame:
-    sentiment_count = df["airline_sentiment"].value_counts().reset_index()
-    sentiment_count.columns = ["sentiment", "tweets"]
-    sentiment_count["percentage"] = (sentiment_count["tweets"] / sentiment_count["tweets"].sum()) * 100
-    return sentiment_count
+    """Output kolom: sentiment, tweets"""
+    df = _ensure_cols(df)
+
+    s = (
+        df["airline_sentiment"]
+        .value_counts(dropna=False)
+        .rename_axis("sentiment")
+        .reset_index(name="tweets")
+    )
+
+    full = (
+        pd.DataFrame({"sentiment": SENTIMENT_ORDER})
+        .merge(s, on="sentiment", how="left")
+        .fillna({"tweets": 0})
+    )
+    full["tweets"] = full["tweets"].astype(int)
+    return full
+
 
 def agg_hour_trend(df: pd.DataFrame) -> pd.DataFrame:
-    if "hour" not in df.columns:
-        return df.iloc[0:0].copy()
-    return df.groupby(["hour", "airline_sentiment"]).size().reset_index(name="tweets")
+    """Output kolom: hour, airline_sentiment, tweets"""
+    df = _ensure_cols(df)
+    empty_df_schema = pd.DataFrame(columns=["hour", "airline_sentiment", "tweets"])
+    
+    if "hour" not in df.columns or df["hour"].isna().all():
+        return empty_df_schema
+
+    g = (
+        df.dropna(subset=["hour"])
+          .groupby(["hour", "airline_sentiment"])
+          .size()
+          .reset_index(name="tweets")
+    )
+    
+    if g.empty:
+        return empty_df_schema
+
+    g["hour"] = g["hour"].astype(int) 
+    g["airline_sentiment"] = pd.Categorical(g["airline_sentiment"], SENTIMENT_ORDER, ordered=True)
+    g = g.sort_values(["hour", "airline_sentiment"]).reset_index(drop=True)
+    return g
+
 
 def agg_topic_vs_sentiment(df: pd.DataFrame) -> pd.DataFrame:
-    x = df.assign(topic=df["topic_delay"].map({1: "Delay-related", 0: "Other"}))
-    return x.groupby(["topic", "airline_sentiment"]).size().reset_index(name="tweets")
+    """Output kolom: issue, airline_sentiment, tweets"""
+    df = _ensure_cols(df)
+    
+    # Memastikan kolom 'issue' ada
+    if 'issue' not in df.columns:
+         df['issue'] = '(other)' 
+         
+    g = (
+        df.groupby(["issue", "airline_sentiment"])
+          .size()
+          .reset_index(name="tweets") 
+    )
 
-def sentiment_analysis(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Menambahkan analisis sentimen dengan TextBlob
-    """
-    df["text_clean"] = df["text"].apply(lambda x: TextBlob(x).sentiment.polarity)
-    df["sentiment_type"] = df["text_clean"].apply(lambda x: "positive" if x > 0 else "negative" if x < 0 else "neutral")
-    return df
+    g["airline_sentiment"] = pd.Categorical(g["airline_sentiment"], SENTIMENT_ORDER, ordered=True)
+    g = g.sort_values(["issue", "airline_sentiment"]).reset_index(drop=True)
+    return g
