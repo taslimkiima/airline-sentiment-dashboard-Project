@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL DENGAN PERBAIKAN NLTK)
+# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL)
 
 import os
 import json
@@ -11,13 +11,10 @@ from wordcloud import WordCloud, STOPWORDS
 import nltk
 
 # ===================== PENYESUAIAN UNTUK NLTK/TEXTBLOB =====================
-# WAJIB: Unduh data NLTK di Streamlit Cloud (Menggunakan except Exception untuk menghindari AttributeError)
+# WAJIB: Unduh data NLTK di Streamlit Cloud
 try:
-    # Coba cek data yang dibutuhkan. 
     nltk.data.find('corpora/wordnet')
 except Exception:
-    # Jika gagal ditemukan (termasuk DownloadError atau error saat inisialisasi),
-    # kita paksa unduh.
     nltk.download('wordnet')
     nltk.download('punkt')
 # ==========================================================================
@@ -107,7 +104,7 @@ st.markdown(
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: var(--text);
     }}
-    /* Pastikan semua teks yang dihasilkan Streamlit terlihat */
+    /* Pastikan semua teks UI, termasuk label, terlihat */
     .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart, 
     .stSelectbox label, .stMultiselect label, .stSlider label {{
       color: var(--text);
@@ -124,6 +121,25 @@ st.markdown(
         color: var(--text);
         border: 1px solid #ccc;
     }}
+    
+    /* === PERBAIKAN 1: Teks Download Button (stDownloadButton) === */
+    /* Memaksa teks tombol download menggunakan warna teks utama (hitam di Tema Terang) */
+    [data-testid="stDownloadButton"] > button {{
+        color: var(--text) !important; 
+        background-color: var(--card);
+        border: 1px solid var(--muted);
+    }}
+    
+    /* === PERBAIKAN 2: Teks Tabs (stTabs) === */
+    /* Menargetkan label tab saat tidak aktif */
+    [data-testid="stTabs"] button {{
+        color: var(--muted) !important; 
+    }}
+    /* Menargetkan tab aktif (garis merah tetap default) */
+    [data-testid="stTabs"] button[aria-selected="true"] {{
+        color: var(--text) !important; 
+    }}
+    
     .stButton {{
       background-color: var(--button-bg);
       color: white;
