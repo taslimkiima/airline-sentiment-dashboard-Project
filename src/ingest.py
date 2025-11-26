@@ -4,7 +4,6 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
-# Default file: cari Tweets.csv di root project (satu level di atas folder src)
 DEFAULT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Tweets.csv"))
 
 @st.cache_data(show_spinner=True)
