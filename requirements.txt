@@ -4,3 +4,4 @@ numpy>=1.26
 plotly>=5.20
 matplotlib>=3.8
 wordcloud>=1.9
+textblob
