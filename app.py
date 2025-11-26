@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL)
+# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL DENGAN TAB SELAMAT DATANG)
 
 import os
 import json
@@ -123,7 +123,6 @@ st.markdown(
     }}
     
     /* === PERBAIKAN 1: Teks Download Button (stDownloadButton) === */
-    /* Memaksa teks tombol download menggunakan warna teks utama (hitam di Tema Terang) */
     [data-testid="stDownloadButton"] > button {{
         color: var(--text) !important; 
         background-color: var(--card);
@@ -131,11 +130,9 @@ st.markdown(
     }}
     
     /* === PERBAIKAN 2: Teks Tabs (stTabs) === */
-    /* Menargetkan label tab saat tidak aktif */
     [data-testid="stTabs"] button {{
         color: var(--muted) !important; 
     }}
-    /* Menargetkan tab aktif (garis merah tetap default) */
     [data-testid="stTabs"] button[aria-selected="true"] {{
         color: var(--text) !important; 
     }}
@@ -325,7 +322,6 @@ col_dl2.download_button(
     data=filtered_csv, file_name=f"tweets_filtered_{datetime.now().date()}.csv", mime="text/csv",
 )
 
-# Menggunakan schema yang benar untuk download
 sent_df = agg_sentiment(df) if len(df) else pd.DataFrame(columns=["sentiment","tweets"])
 trend_df = agg_hour_trend(df) if len(df) else pd.DataFrame(columns=["hour","airline_sentiment","tweets"])
 topic_df_dl = agg_topic_vs_sentiment(df) if len(df) else pd.DataFrame(columns=["issue","airline_sentiment","tweets"])
@@ -361,9 +357,64 @@ col_dl5.download_button(
 st.divider()
 
 # ===================== TABS =====================
-tab_overview, tab_time, tab_geo, tab_topics, tab_quality = st.tabs(
-    ["Overview", "Time Trend", "Map", "Topics", "Data Quality"]
+# Menambahkan tab_welcome sebagai yang pertama
+tab_welcome, tab_overview, tab_time, tab_geo, tab_topics, tab_quality = st.tabs(
+    ["👋 Selamat Datang", "Overview", "Time Trend", "Map", "Topics", "Data Quality"]
 )
+
+# =============== SELAMAT DATANG / PANDUAN PENGGUNA ===============
+with tab_welcome:
+    st.header("Selamat Datang di ✈️ Airline Tweet Sentiment Dashboard")
+    st.markdown("""
+        Dashboard ini dirancang untuk menganalisis sentimen publik terhadap maskapai penerbangan 
+        berdasarkan data media sosial. Fokus utama kami adalah menyajikan **insight yang cepat dan dapat ditindaklanjuti** mengenai masalah (isu) utama yang dihadapi oleh maskapai.
+    """)
+    st.markdown("---")
+
+    ### A. Cara Menggunakan Filter
+    st.subheader("📚 Panduan Penggunaan")
+    st.info("""
+        Gunakan menu **Filters** di sidebar (kiri) untuk menyesuaikan tampilan data:
+        
+        * **Date Range:** Batasi analisis pada periode waktu tertentu.
+        * **Pick Airlines:** Pilih maskapai mana saja yang ingin Anda bandingkan.
+        * **Pick Sentiments:** Filter berdasarkan sentimen (Negatif, Netral, Positif).
+        * **Hour of Day (Time Trend):** Batasi tren waktu berdasarkan jam-jam tertentu.
+        * **Cari Kata:** Lakukan pencarian teks bebas pada kolom *text_clean* (teks yang sudah dibersihkan).
+    """)
+
+    ### B. Interpretasi Key Performance Indicators (KPI)
+    st.subheader("📊 Maksud Metrik KPI (Key Performance Indicators)")
+    
+    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+    
+    with col_kpi1:
+        st.markdown("**Total Tweets**")
+        st.caption("Jumlah total *tweet* yang tersisa setelah SEMUA filter di sidebar diterapkan.")
+    
+    with col_kpi2:
+        st.markdown("**% Negative**")
+        st.caption("Persentase *tweet* bernada negatif dari Total Tweets yang lolos filter. Ini adalah metrik utama kepuasan.")
+    
+    with col_kpi3:
+        st.markdown("**Top Airline (Neg)**")
+        st.caption("Maskapai dengan jumlah *tweet* negatif paling banyak (bukan persentase). Fokus untuk perbaikan segera.")
+    
+    with col_kpi4:
+        st.markdown("**Delay in Negative**")
+        st.caption("Persentase *tweet* negatif yang secara spesifik membahas isu **'delay'** (keterlambatan/pembatalan). Menunjukkan urgensi masalah waktu.")
+    
+    st.markdown("---")
+    
+    ### C. Detail Visualisasi
+    st.subheader("🎨 Apa yang Ditampilkan di Setiap Tab?")
+    st.markdown("""
+    * **Overview:** Distribusi sentimen keseluruhan (Grafik Bar dan Pie).
+    * **Time Trend:** Tren jumlah *tweet* per jam, dipecah berdasarkan sentimen. Berguna untuk mengetahui waktu puncak komplain atau pujian (misalnya, saat pagi atau malam).
+    * **Map:** Visualisasi lokasi *tweet* (jika koordinat tersedia dalam data).
+    * **Topics:** Analisis kata kunci (Word Cloud) dan grafik Topics vs Sentiment (membandingkan isu 'delay', 'refund', 'bagasi', 'service').
+    * **Data Quality:** Informasi teknis tentang data mentah (jumlah baris, *missing values*, duplikasi).
+    """)
 
 # =============== OVERVIEW ===============
 with tab_overview:
