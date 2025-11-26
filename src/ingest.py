@@ -1,4 +1,4 @@
-# src/ingest.py (FINAL)
+# src/ingest.py (KODE FINAL)
 import os
 import io
 from typing import Optional, Union
@@ -28,7 +28,6 @@ def _read_csv_from_bytes(raw: bytes) -> pd.DataFrame:
             try:
                 bio = io.BytesIO(raw)  # reset pointer tiap percobaan
                 df = pd.read_csv(bio, sep=sep, encoding=enc, engine="python", dtype={"tweet_id": "string"})
-                # lolos minimal: >1 kolom
                 if df.shape[1] > 1:
                     return df
             except Exception as e:
@@ -40,10 +39,7 @@ def _read_csv_from_bytes(raw: bytes) -> pd.DataFrame:
 @st.cache_data(show_spinner=True)
 def read_any_csv(obj: Optional[Union[str, bytes, bytearray, "UploadedFile"]]) -> pd.DataFrame:
     """
-    Baca CSV dari:
-      - path string (mis. 'Tweets.csv')
-      - UploadedFile Streamlit (punya method .read())
-      - bytes / bytearray
+    Baca CSV dari: path string, UploadedFile, atau bytes.
     """
     # 1) None → pakai default file di root
     if obj is None:
@@ -63,17 +59,18 @@ def read_any_csv(obj: Optional[Union[str, bytes, bytearray, "UploadedFile"]]) ->
     if isinstance(obj, (bytes, bytearray)):
         return _read_csv_from_bytes(obj)
 
-    # 4) path string
+    # 4) path string (termasuk "Tweets.csv" di root GitHub)
     if isinstance(obj, str):
-        path = os.path.abspath(obj)
-        # Khusus untuk Streamlit Cloud/GitHub, kita asumsikan jika path='Tweets.csv'
-        # file ada di root, jadi kita langsung coba baca.
         try:
             return pd.read_csv(obj, dtype={"tweet_id": "string"})
         except UnicodeDecodeError:
             return pd.read_csv(obj, dtype={"tweet_id": "string"}, encoding="latin-1")
-        except FileNotFoundError:
-             raise FileNotFoundError(f"CSV tidak ditemukan: {path}")
+        except FileNotFoundError as e:
+             # Coba path absolut sebagai fallback
+             abs_path = os.path.abspath(obj)
+             if os.path.exists(abs_path):
+                 return pd.read_csv(abs_path, dtype={"tweet_id": "string"})
+             raise e
 
     # 5) tipe lain tidak didukung
     raise TypeError(f"Tipe objek tidak didukung untuk read_any_csv: {type(obj)}")
@@ -82,16 +79,4 @@ def read_any_csv(obj: Optional[Union[str, bytes, bytearray, "UploadedFile"]]) ->
 @st.cache_data(show_spinner=True)
 def load_csv(path: Optional[Union[str, bytes, bytearray, "UploadedFile"]] = None) -> pd.DataFrame:
     """Backward compatible loader (nama fungsi lama)."""
-    if path is None:
-        return read_any_csv(DEFAULT_FILE) # Panggil read_any_csv dengan default path
-
-    if not isinstance(path, str):
-        return read_any_csv(path)
-
-    abs_path = os.path.abspath(path)
-    if not os.path.exists(abs_path):
-        raise FileNotFoundError(f"CSV tidak ditemukan: {abs_path}")
-    try:
-        return pd.read_csv(abs_path, dtype={"tweet_id": "string"})
-    except UnicodeDecodeError:
-        return pd.read_csv(abs_path, dtype={"tweet_id": "string"}, encoding="latin-1")
+    return read_any_csv(path)
