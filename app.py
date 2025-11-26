@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (FINAL)
+# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL)
 
 import os
 import json
@@ -8,6 +8,16 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS
+import nltk
+
+# ===================== PENYESUAIAN UNTUK NLTK/TEXTBLOB =====================
+# WAJIB: Unduh data NLTK di Streamlit Cloud
+try:
+    nltk.data.find('corpora/wordnet')
+except nltk.downloader.DownloadError:
+    nltk.download('wordnet')
+    nltk.download('punkt')
+# ==========================================================================
 
 # Modul util & viz milik kamu
 from src.ingest import read_any_csv, coerce_columns_lower
@@ -28,21 +38,25 @@ st.caption("Fokus: manajemen data (clean/transform) + visual interaktif + insigh
 THEMES = {
     "Terang": {
         "plotly_template": "plotly_white",
-        "bg": "#ffffff", "text": "#0f172a", "card": "#ffffff",
-        "muted": "#475569", "wc_bg": "white", "mpl_face": "white",
-        "button": "#4CAF50",
-    },
-    "Sedang": {
-        "plotly_template": "plotly",
-        "bg": "#f3f4f6", "text": "#0b1220", "card": "#ffffff",
-        "muted": "#52525b", "wc_bg": "#f3f4f6", "mpl_face": "#f3f4f6",
-        "button": "#FFC107",
+        "bg": "#ffffff", 
+        "text": "#0f172a",  # Hitam pekat
+        "card": "#f0f2f6",  # Kartu abu-abu muda
+        "muted": "#475569", 
+        "wc_bg": "white", 
+        "mpl_face": "white",
+        "button": "#1e40af", 
+        "input_bg": "#ffffff", # Input putih
     },
     "Gelap": {
         "plotly_template": "plotly_dark",
-        "bg": "#0b1220", "text": "#e5e7eb", "card": "#111827",
-        "muted": "#9ca3af", "wc_bg": "black", "mpl_face": "#0b1220",
+        "bg": "#0b1220", 
+        "text": "#e5e7eb", 
+        "card": "#111827",
+        "muted": "#9ca3af", 
+        "wc_bg": "black", 
+        "mpl_face": "#0b1220",
         "button": "#FF5722",
+        "input_bg": "#1f2937", 
     },
 }
 
@@ -55,7 +69,7 @@ with st.sidebar:
         "Tema UI",
         options=list(THEMES.keys()),
         index=list(THEMES.keys()).index(st.session_state.theme_name),
-        help="Pilih: Terang / Sedang / Gelap",
+        help="Pilih: Terang / Gelap",
     )
     st.session_state.theme_name = theme_name
 
@@ -68,7 +82,7 @@ try:
 except Exception as e:
     print(f"Error applying template: {e}")
 
-# ===================== CSS LIGHT CUSTOMIZATION =====================
+# ===================== CSS LIGHT CUSTOMIZATION (Final) =====================
 st.markdown(
     f"""
     <style>
@@ -78,21 +92,34 @@ st.markdown(
       --card: {THEME['card']};
       --button-bg: {THEME['button']};
       --button-hover: #333;
+      --input-bg: {THEME['input_bg']}; 
     }}
     html, body, [data-testid="stAppViewContainer"] {{
       background-color: var(--bg);
       color: var(--text);
     }}
-    [data-testid="stHeader"] {{
-      background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0)) !important;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }}
+    /* Pastikan teks sidebar terlihat */
     [data-testid="stSidebar"] > div:first-child {{
       background-color: var(--card);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }}
-    .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart {{
       color: var(--text);
+    }}
+    /* Pastikan semua teks yang dihasilkan Streamlit terlihat */
+    .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart, 
+    .stSelectbox label, .stMultiselect label, .stSlider label {{
+      color: var(--text);
+    }}
+    /* Kontrol Input (Selectbox, Multiselect, Slider) */
+    .stSelectbox > div, .stMultiselect > div, .stSlider > div {{
+        background-color: var(--input-bg);
+        border: 1px solid #ccc;
+        color: var(--text);
+    }}
+    /* Kotak input teks */
+    .stTextInput > div > div > input {{
+        background-color: var(--input-bg);
+        color: var(--text);
+        border: 1px solid #ccc;
     }}
     .stButton {{
       background-color: var(--button-bg);
@@ -103,10 +130,6 @@ st.markdown(
     }}
     .stButton:hover {{
       background-color: var(--button-hover);
-    }}
-    .stSelectbox, .stMultiselect, .stSlider {{
-      background-color: #f0f2f6;
-      border: 1px solid #ccc;
     }}
     </style>
     """,
@@ -132,7 +155,6 @@ def _clean(df: pd.DataFrame) -> pd.DataFrame:
 DEFAULT_FILE = os.path.join(os.path.dirname(__file__) if "__file__" in globals() else ".", "Tweets.csv")
 data_raw = None
 try:
-    # Asumsi: Tweets.csv ada di root folder
     data_raw = _load_default_csv("Tweets.csv")
 except Exception as e:
     st.warning(f"Catatan: {e}")
@@ -188,7 +210,6 @@ with st.sidebar:
     flt_sent = st.multiselect("Pick sentiments", sentiments, default=st.session_state.flt_sent)
 
     if "hour" in data.columns:
-        # PENTING: Inisialisasi default yang solid
         if "flt_hour" not in st.session_state or st.session_state.flt_hour is None:
             st.session_state.flt_hour = (0, 23)
         flt_hour = st.slider("Hour of day", 0, 23, st.session_state.flt_hour)
@@ -203,7 +224,6 @@ with st.sidebar:
     if st.button("Reset all filters"):
         for k in ["date_range","flt_airline","flt_sent","flt_hour","q"]:
             st.session_state.pop(k, None)
-        # Penting: Rerun untuk menerapkan reset
         st.experimental_rerun()
 
 # Terapkan filter
@@ -232,7 +252,7 @@ if "hour" in df.columns and isinstance(flt_hour, tuple):
             (valid_hours["hour"].astype(int) <= flt_hour[1])
         ]
     else:
-        df = pd.DataFrame() # Data kosong jika tidak ada jam valid setelah filter
+        df = pd.DataFrame() 
 
 # Search keyword on text_clean
 if q:
