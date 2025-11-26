@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL)
+# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL DENGAN PERBAIKAN NLTK)
 
 import os
 import json
@@ -11,10 +11,13 @@ from wordcloud import WordCloud, STOPWORDS
 import nltk
 
 # ===================== PENYESUAIAN UNTUK NLTK/TEXTBLOB =====================
-# WAJIB: Unduh data NLTK di Streamlit Cloud
+# WAJIB: Unduh data NLTK di Streamlit Cloud (Menggunakan except Exception untuk menghindari AttributeError)
 try:
+    # Coba cek data yang dibutuhkan. 
     nltk.data.find('corpora/wordnet')
-except nltk.downloader.DownloadError:
+except Exception:
+    # Jika gagal ditemukan (termasuk DownloadError atau error saat inisialisasi),
+    # kita paksa unduh.
     nltk.download('wordnet')
     nltk.download('punkt')
 # ==========================================================================
@@ -39,13 +42,13 @@ THEMES = {
     "Terang": {
         "plotly_template": "plotly_white",
         "bg": "#ffffff", 
-        "text": "#0f172a",  # Hitam pekat
-        "card": "#f0f2f6",  # Kartu abu-abu muda
+        "text": "#0f172a", 
+        "card": "#f0f2f6", 
         "muted": "#475569", 
         "wc_bg": "white", 
         "mpl_face": "white",
         "button": "#1e40af", 
-        "input_bg": "#ffffff", # Input putih
+        "input_bg": "#ffffff", 
     },
     "Gelap": {
         "plotly_template": "plotly_dark",
