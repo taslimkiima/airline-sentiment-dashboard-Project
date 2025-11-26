@@ -13,8 +13,10 @@ import nltk
 # ===================== PENYESUAIAN UNTUK NLTK/TEXTBLOB =====================
 # WAJIB: Unduh data NLTK di Streamlit Cloud
 try:
+    # Coba cek data yang dibutuhkan. 
     nltk.data.find('corpora/wordnet')
 except Exception:
+    # Jika gagal ditemukan atau terjadi error inisialisasi, kita paksa unduh.
     nltk.download('wordnet')
     nltk.download('punkt')
 # ==========================================================================
@@ -109,12 +111,15 @@ st.markdown(
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }}
     
-    /* === Perbaikan 1: Teks Label Input di Sidebar (seperti 'Upload CSV', 'Cari kata') === */
+    /* === PERBAIKAN: Menargetkan SEMUA Label Filter di Sidebar === */
+    /* Menargetkan label statis ('Filters') dan label dinamis (Date Range, Pick Airlines, dll.) */
     [data-testid="stSidebar"] .stMarkdown > p,
+    [data-testid="stSidebar"] label p,
     [data-testid="stSidebar"] [data-testid="stFileUploader"] label p, 
     [data-testid="stSidebar"] [data-testid="stTextInput"] label p, 
-    [data-testid="stSidebar"] [data-testid="stSelectbox"] label p,
-    [data-testid="stSidebar"] [data-testid="stMultiselect"] label p,
+    [data-testid="stSidebar"] [data-testid="stDateInput"] label p, 
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] label p, 
+    [data-testid="stSidebar"] [data-testid="stMultiselect"] label p, 
     [data-testid="stSidebar"] [data-testid="stSlider"] label p
     {{
         color: var(--text); 
@@ -133,21 +138,27 @@ st.markdown(
         color: var(--text);
     }}
     
-    /* Kotak input teks (Termasuk field "Cari Kata") */
+    /* Kotak input teks */
     .stTextInput > div > div > input {{
         background-color: var(--input-bg);
         color: var(--text);
         border: 1px solid #ccc;
     }}
     
-    /* === Perbaikan 2: Teks Download Button (stDownloadButton) === */
+    /* Teks di dalam drop area File Uploader */
+    [data-testid="stFileUploaderDropzone"] p,
+    [data-testid="stFileUploaderDropzone"] small {{
+        color: var(--text);
+    }}
+
+    /* === Teks Download Button (stDownloadButton) === */
     [data-testid="stDownloadButton"] > button {{
         color: var(--text) !important; 
         background-color: var(--card);
         border: 1px solid var(--muted);
     }}
     
-    /* === Perbaikan 3: Teks Tabs (stTabs) === */
+    /* === Teks Tabs (stTabs) === */
     [data-testid="stTabs"] button {{
         color: var(--muted) !important; 
     }}
