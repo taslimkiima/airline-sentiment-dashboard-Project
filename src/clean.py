@@ -1,4 +1,4 @@
-# src/clean.py (FINAL)
+# src/clean.py (KODE FINAL)
 import re
 import numpy as np
 import pandas as pd
@@ -98,7 +98,7 @@ def parse_datetime(df: pd.DataFrame, col: str = "tweet_created") -> pd.DataFrame
             dt = pd.to_datetime(out[col], errors="coerce").dt.tz_localize("Asia/Jakarta", nonexistent="shift_forward", ambiguous="NaT")
         out[col] = dt
         
-        # PERBAIKAN: Gunakan Int64 (nullable integer)
+        # Gunakan Int64 (nullable integer) untuk kolom hour
         out["hour"] = dt.dt.hour.astype('Int64', errors='ignore') 
         
         out["date"] = dt.dt.date
