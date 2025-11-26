@@ -1,4 +1,4 @@
-# src/features.py (FINAL)
+# src/features.py (KODE FINAL)
 import pandas as pd
 
 SENTIMENT_ORDER = ["negative", "neutral", "positive"]
@@ -86,7 +86,6 @@ def agg_topic_vs_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     """Output kolom: issue, airline_sentiment, tweets"""
     df = _ensure_cols(df)
     
-    # Memastikan kolom 'issue' ada
     if 'issue' not in df.columns:
          df['issue'] = '(other)' 
          
