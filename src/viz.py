@@ -1,11 +1,15 @@
-# src/viz.py (FINAL)
+# src/viz.py (KODE FINAL)
 
 import plotly.express as px
 import plotly.io as pio
 import pandas as pd
 
-# Warna untuk sentimen (positive, neutral, negative)
-SENTI_COLORS = {"negative": "red", "neutral": "blue", "positive": "green"} 
+# Warna untuk sentimen: Merah (Negatif), Biru (Netral), Hijau (Positif)
+SENTI_COLORS = {
+    "negative": "red",     
+    "neutral": "blue",     
+    "positive": "green"    
+}
 
 PALETTE = px.colors.qualitative.Safe 
 
@@ -46,7 +50,7 @@ def fig_hour_trend(trend: pd.DataFrame):
         color="airline_sentiment", 
         markers=True, 
         height=460, 
-        color_discrete_map=SENTI_COLORS,
+        color_discrete_map=SENTI_COLORS, 
         labels={"tweets": "Number of Tweets", "hour": "Hour of Day (Asia/Jakarta)"}
     )
 
@@ -59,7 +63,7 @@ def fig_topic_stack(df_topic: pd.DataFrame):
         color="airline_sentiment", 
         barmode="stack", 
         height=420, 
-        color_discrete_map=SENTI_COLORS,
+        color_discrete_map=SENTI_COLORS, 
         labels={"tweets": "Number of Tweets", "issue": "Identified Topic/Issue"},
         title="Issue Breakdown by Sentiment"
     )
