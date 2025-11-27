@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (KODE FINAL)
+# app.py — Airline Tweet Sentiment Dashboard (FINAL)
 
 import os
 import json
@@ -18,7 +18,7 @@ except Exception:
     nltk.download('punkt')
 # ======================================================
 
-# Modul util & viz milik kamu
+# Modul util & viz milikmu
 from src.ingest import read_any_csv, coerce_columns_lower
 from src.clean import clean_pipeline
 from src.features import (
@@ -45,6 +45,7 @@ THEMES = {
         "mpl_face": "white",
         "button": "#1e40af",
         "input_bg": "#ffffff",
+        "border": "#d1d5db",
     },
     "Gelap": {
         "plotly_template": "plotly_dark",
@@ -56,6 +57,7 @@ THEMES = {
         "mpl_face": "#0b1220",
         "button": "#FF5722",
         "input_bg": "#1f2937",
+        "border": "#374151",
     },
 }
 
@@ -93,6 +95,7 @@ st.markdown(
       --button-hover: #333;
       --input-bg: {THEME['input_bg']};
       --muted: {THEME['muted']};
+      --border: {THEME['border']};
     }}
     html, body, [data-testid="stAppViewContainer"] {{
       background-color: var(--bg);
@@ -125,7 +128,7 @@ st.markdown(
         color: var(--text) !important;
         font-weight: 700;
         font-size: 1.3rem;
-        white-space: normal !important;          /* boleh wrap */
+        white-space: normal !important;
         overflow-wrap: break-word !important;
         word-break: break-word !important;
         text-overflow: clip !important;
@@ -147,23 +150,17 @@ st.markdown(
 
     .stSelectbox > div, .stMultiselect > div, .stSlider > div {{
         background-color: var(--input-bg);
-        border: 1px solid #ccc;
+        border: 1px solid var(--border);
         color: var(--text);
     }}
     .stTextInput > div > div > input {{
         background-color: var(--input-bg);
         color: var(--text);
-        border: 1px solid #ccc;
+        border: 1px solid var(--border);
     }}
     [data-testid="stFileUploaderDropzone"] p,
     [data-testid="stFileUploaderDropzone"] small {{
         color: var(--text);
-    }}
-
-    [data-testid="stDownloadButton"] > button {{
-        color: var(--text) !important;
-        background-color: var(--card);
-        border: 1px solid var(--muted);
     }}
 
     [data-testid="stTabs"] button {{
@@ -184,10 +181,34 @@ st.markdown(
       background-color: var(--button-hover);
     }}
 
-    /* Kecilkan font label & value slider supaya lebih rapi */
+    /* ====== PERKECIL TOMBOL DOWNLOAD ====== */
+    [data-testid="stDownloadButton"] > button {{
+        padding: 6px 12px !important;
+        font-size: 0.80rem !important;
+        border-radius: 6px !important;
+        border: 1px solid var(--border) !important;
+        background-color: var(--card) !important;
+        color: var(--text) !important;
+        min-height: 32px !important;
+        height: 32px !important;
+    }}
+    [data-testid="stDownloadButton"] > button:hover {{
+        background-color: #3b4252 !important;
+        border-color: #6b7280 !important;
+    }}
+
+    /* ====== SLIDER HOUR LEBIH RAPIH & TANPA BOX PUTIH ====== */
+    [data-testid="stSlider"] > div {{
+        background-color: transparent !important;
+        border: none !important;              /* hilangkan kotak putih */
+        box-shadow: none !important;
+    }}
     [data-baseweb="slider"] span {{
         font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text);
     }}
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -415,7 +436,7 @@ with st.sidebar:
     st.session_state.flt_airline = flt_airline
     st.session_state.flt_sent = flt_sent
 
-    # ---- Hour filter (diperindah) ----
+    # ---- Hour filter (rapih) ----
     if "hour" in data.columns:
         if "flt_hour" not in st.session_state or st.session_state.flt_hour is None:
             st.session_state.flt_hour = (0, 23)
@@ -426,7 +447,7 @@ with st.sidebar:
             0,
             23,
             st.session_state.flt_hour,
-            format="%02d:00",                # tampil sebagai 00:00, 23:00
+            format="%02d:00",
             label_visibility="collapsed",
             help="Filter tweet berdasarkan jam (waktu lokal Asia/Jakarta).",
         )
@@ -520,7 +541,7 @@ col_dl1, col_dl2, col_dl3, col_dl4, col_dl5 = st.columns(5)
 
 clean_csv = data.to_csv(index=False).encode("utf-8")
 col_dl1.download_button(
-    label="Download CLEANED CSV",
+    label="Download CLEANED\nCSV",
     data=clean_csv,
     file_name=f"tweets_clean_{datetime.now().date()}.csv",
     mime="text/csv",
@@ -528,7 +549,7 @@ col_dl1.download_button(
 
 filtered_csv = df.to_csv(index=False).encode("utf-8")
 col_dl2.download_button(
-    label="Download FILTERED CSV",
+    label="Download FILTERED\nCSV",
     data=filtered_csv,
     file_name=f"tweets_filtered_{datetime.now().date()}.csv",
     mime="text/csv",
@@ -539,13 +560,13 @@ trend_df = agg_hour_trend(df) if len(df) else pd.DataFrame(columns=["hour", "air
 topic_df_dl = agg_topic_vs_sentiment(df) if len(df) else pd.DataFrame(columns=["issue", "airline_sentiment", "tweets"])
 
 col_dl3.download_button(
-    label="Download agg_sentiment.csv",
+    label="Download\nagg_sentiment.csv",
     data=sent_df.to_csv(index=False).encode("utf-8"),
     file_name="agg_sentiment.csv",
     mime="text/csv",
 )
 col_dl4.download_button(
-    label="Download agg_hourly_trend.csv",
+    label="Download\nagg_hourly_trend.csv",
     data=trend_df.to_csv(index=False).encode("utf-8"),
     file_name="agg_hourly_trend.csv",
     mime="text/csv",
@@ -563,7 +584,7 @@ cfg = {
     "generated_at": datetime.utcnow().isoformat() + "Z",
 }
 col_dl5.download_button(
-    "Download CONFIG (.json)",
+    "Download CONFIG\n(.json)",
     data=json.dumps(cfg, indent=2).encode("utf-8"),
     file_name="dashboard_config.json",
     mime="application/json",
