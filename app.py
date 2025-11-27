@@ -81,7 +81,7 @@ try:
 except Exception as e:
     print(f"Error applying template: {e}")
 
-# ===================== CSS LIGHT CUSTOMIZATION =====================
+# ===================== CSS =====================
 st.markdown(
     f"""
     <style>
@@ -120,13 +120,25 @@ st.markdown(
         font-weight: 600;
     }}
 
+    /* KPI value (angka / nama maskapai) */
     [data-testid="stMetricValue"] {{
         color: var(--text) !important;
         font-weight: 700;
+        font-size: 1.3rem;
+        white-space: normal !important;          /* BOLEH WRAP */
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+        text-overflow: clip !important;          /* jangan ellipsis */
     }}
+
+    /* KPI label (judul kecil) */
     [data-testid="stMetricLabel"] {{
         color: var(--muted) !important;
         font-weight: 500;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+        text-overflow: clip !important;
     }}
 
     .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart {{
@@ -479,7 +491,8 @@ kpi = kpi_metrics(df) if len(df) else {
 neg = df[df["airline_sentiment"] == "negative"] if "airline_sentiment" in df.columns else pd.DataFrame()
 delay_share = 100 * (len(neg[neg["issue"] == "delay"]) / len(neg)) if len(neg) else 0.0
 
-c1, c2, c3, c4 = st.columns(4)
+# buat kolom KPI, sedikit lebarkan yang kanan
+c1, c2, c3, c4 = st.columns([1, 1, 1.2, 1.2])
 c1.metric("Total Tweets", f"{kpi['total_tweets']:,}", help="Jumlah tweet yang lolos semua filter aktif.")
 c2.metric("% Negative", f"{kpi['neg_pct']:.1f}%", help="% tweet bernada negatif dari total tweet (setelah filter).")
 c3.metric("Top Airline (Neg)", kpi["top_neg_airline"], help="Maskapai dengan jumlah tweet negatif terbanyak.")
