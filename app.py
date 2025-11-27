@@ -125,10 +125,10 @@ st.markdown(
         color: var(--text) !important;
         font-weight: 700;
         font-size: 1.3rem;
-        white-space: normal !important;          /* BOLEH WRAP */
+        white-space: normal !important;          /* boleh wrap */
         overflow-wrap: break-word !important;
         word-break: break-word !important;
-        text-overflow: clip !important;          /* jangan ellipsis */
+        text-overflow: clip !important;
     }}
 
     /* KPI label (judul kecil) */
@@ -182,6 +182,11 @@ st.markdown(
     }}
     .stButton button:hover {{
       background-color: var(--button-hover);
+    }}
+
+    /* Kecilkan font label & value slider supaya lebih rapi */
+    [data-baseweb="slider"] span {{
+        font-size: 0.8rem;
     }}
     </style>
     """,
@@ -410,11 +415,22 @@ with st.sidebar:
     st.session_state.flt_airline = flt_airline
     st.session_state.flt_sent = flt_sent
 
-    # ---- Hour filter ----
+    # ---- Hour filter (diperindah) ----
     if "hour" in data.columns:
         if "flt_hour" not in st.session_state or st.session_state.flt_hour is None:
             st.session_state.flt_hour = (0, 23)
-        flt_hour = st.slider("Hour of day", 0, 23, st.session_state.flt_hour)
+
+        st.markdown("**Hour of day**")
+        flt_hour = st.slider(
+            "",
+            0,
+            23,
+            st.session_state.flt_hour,
+            format="%02d:00",                # tampil sebagai 00:00, 23:00
+            label_visibility="collapsed",
+            help="Filter tweet berdasarkan jam (waktu lokal Asia/Jakarta).",
+        )
+        st.caption(f"Rentang jam aktif: {flt_hour[0]:02d}:00 – {flt_hour[1]:02d}:59")
         st.session_state.flt_hour = flt_hour
     else:
         flt_hour = (0, 23)
@@ -576,7 +592,7 @@ with tab_welcome:
         * **Date Range:** Batasi analisis pada periode waktu tertentu.
         * **Pick Airlines:** Pilih maskapai mana saja yang ingin Anda bandingkan.
         * **Pick Sentiments:** Filter berdasarkan sentimen (Negatif, Netral, Positif).
-        * **Hour of Day (Time Trend):** Batasi tren waktu berdasarkan jam-jam tertentu.
+        * **Hour of Day:** Batasi analisis berdasarkan jam (waktu lokal Asia/Jakarta).
         * **Cari Kata:** Lakukan pencarian teks bebas pada kolom *text_clean* (teks yang sudah dibersihkan).
     """)
 
@@ -587,7 +603,7 @@ with tab_welcome:
         st.caption("Jumlah total *tweet* yang tersisa setelah SEMUA filter di sidebar diterapkan.")
     with col_kpi2:
         st.markdown("**% Negative**")
-        st.caption("Persentase *tweet* bernada negatif dari Total Tweets yang lolos filter. Ini adalah metrik utama kepuasan.")
+        st.caption("Persentase *tweet* bernada negatif dari Total Tweets yang lolos filter.")
     with col_kpi3:
         st.markdown("**Top Airline (Neg)**")
         st.caption("Maskapai dengan jumlah *tweet* negatif paling banyak (bukan persentase).")
@@ -596,13 +612,13 @@ with tab_welcome:
         st.caption("Persentase *tweet* negatif yang secara spesifik membahas isu **'delay'**.")
 
     st.markdown("---")
-    st.subheader("🎨 Apa yang Ditampilkan di Setiap Tab?")
+    st.subheader("🎨 Isi Tiap Tab")
     st.markdown("""
-    * **Overview:** Distribusi sentimen keseluruhan (Grafik Bar dan Pie).
+    * **Overview:** Distribusi sentimen keseluruhan (Bar + Pie) dan contoh tweet acak.
     * **Time Trend:** Tren jumlah *tweet* per jam, dipecah berdasarkan sentimen.
-    * **Map:** Visualisasi lokasi *tweet* (jika koordinat tersedia dalam data).
-    * **Topics:** Word Cloud + Topics vs Sentiment.
-    * **Data Quality:** Ringkasan kualitas data (missing, duplikasi, dll).
+    * **Map:** Visualisasi lokasi *tweet* (jika koordinat tersedia).
+    * **Topics:** Word Cloud + grafik Issue vs Sentiment.
+    * **Data Quality:** Ringkasan kualitas data dan preview.
     """)
 
 # =============== OVERVIEW ===============
