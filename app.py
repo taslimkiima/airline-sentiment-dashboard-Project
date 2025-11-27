@@ -13,10 +13,8 @@ import nltk
 # ===================== PENYESUAIAN UNTUK NLTK/TEXTBLOB =====================
 # WAJIB: Unduh data NLTK di Streamlit Cloud
 try:
-    # Coba cek data yang dibutuhkan. 
     nltk.data.find('corpora/wordnet')
 except Exception:
-    # Jika gagal ditemukan atau terjadi error inisialisasi, kita paksa unduh.
     nltk.download('wordnet')
     nltk.download('punkt')
 # ==========================================================================
@@ -102,7 +100,7 @@ st.markdown(
       color: var(--text);
     }}
     
-    /* Pastikan teks sidebar terlihat */
+    /* Sidebar */
     [data-testid="stSidebar"] {{
         background-color: var(--card);
         color: var(--text); 
@@ -112,7 +110,7 @@ st.markdown(
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }}
     
-    /* === PERBAIKAN: Menargetkan SEMUA Label Filter di Sidebar === */
+    /* Label filter sidebar */
     [data-testid="stSidebar"] .stMarkdown > p,
     [data-testid="stSidebar"] label p,
     [data-testid="stSidebar"] [data-testid="stFileUploader"] label p, 
@@ -126,7 +124,7 @@ st.markdown(
         font-weight: 600; 
     }}
     
-    /* === PERBAIKAN KPI: Memaksa warna teks metric menjadi warna utama === */
+    /* KPI */
     [data-testid="stMetricValue"] {{
         color: var(--text) !important;
         font-weight: 700;
@@ -140,34 +138,30 @@ st.markdown(
       color: var(--text);
     }}
 
-    /* Kontrol Input (Selectbox, Multiselect, Slider) */
+    /* Input controls */
     .stSelectbox > div, .stMultiselect > div, .stSlider > div {{
         background-color: var(--input-bg);
         border: 1px solid #ccc;
         color: var(--text);
     }}
-    
-    /* Kotak input teks */
     .stTextInput > div > div > input {{
         background-color: var(--input-bg);
         color: var(--text);
         border: 1px solid #ccc;
     }}
-    
-    /* Teks di dalam drop area File Uploader */
     [data-testid="stFileUploaderDropzone"] p,
     [data-testid="stFileUploaderDropzone"] small {{
         color: var(--text);
     }}
 
-    /* Teks Download Button (stDownloadButton) */
+    /* Download button */
     [data-testid="stDownloadButton"] > button {{
         color: var(--text) !important; 
         background-color: var(--card);
         border: 1px solid var(--muted);
     }}
     
-    /* Teks Tabs (stTabs) */
+    /* Tabs */
     [data-testid="stTabs"] button {{
         color: var(--muted) !important; 
     }}
@@ -227,7 +221,7 @@ if data_raw is None or len(data_raw) == 0:
 # Pipeline clean/transform (cached)
 data = _clean(data_raw)
 
-# ===================== TZ UTILS & DATE RANGE NORMALIZER =====================
+# ===================== TZ UTILS & HELPERS =====================
 def to_jkt_naive(series: pd.Series) -> pd.Series:
     """
     Konversi apa pun ke datetime → (jika perlu) Asia/Jakarta → naive (tanpa tz).
@@ -241,10 +235,9 @@ def to_jkt_naive(series: pd.Series) -> pd.Series:
             # sudah punya tz, convert ke Asia/Jakarta lalu buang tz
             s = s.dt.tz_convert("Asia/Jakarta").dt.tz_localize(None)
         else:
-            # naive: traktir sebagai waktu lokal apa adanya (tidak ubah tz)
+            # naive: pakai apa adanya
             pass
     except Exception:
-        # fallback: kalau ada masalah, coba buang tz saja
         try:
             s = s.dt.tz_localize(None)
         except Exception:
@@ -258,7 +251,6 @@ def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
       - berada dalam [dt_min, dt_max]
       - tahan input: single date, list, tuple, None
     """
-    # pastikan dt_min/dt_max adalah date
     if isinstance(dt_min, datetime):
         dt_min = dt_min.date()
     if isinstance(dt_max, datetime):
@@ -267,7 +259,7 @@ def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
     if raw is None:
         return (dt_min, dt_max)
 
-    # Single value (date/datetime) → (start, end)
+    # Single value → (start, end)
     if isinstance(raw, (date, datetime)):
         start = raw
         end = raw
@@ -282,19 +274,17 @@ def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
     else:
         return (dt_min, dt_max)
 
-    # convert datetime → date
     if isinstance(start, datetime):
         start = start.date()
     if isinstance(end, datetime):
         end = end.date()
 
-    # default jika None
     if start is None:
         start = dt_min
     if end is None:
         end = dt_max
 
-    # clamp ke [dt_min, dt_max]
+    # clamp
     if start < dt_min:
         start = dt_min
     if start > dt_max:
@@ -304,17 +294,49 @@ def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
     if end > dt_max:
         end = dt_max
 
-    # kalau range terbalik, reset ke full range
     if start > end:
         start, end = dt_min, dt_max
 
     return (start, end)
 
+def normalize_multiselect_default(
+    options: list,
+    current,
+    fallback_mode: str = "some",  # "some" → 3 pertama, "all" → semua
+    some_k: int = 3,
+):
+    """
+    Pastikan default multiselect:
+      - hanya berisi nilai yg ada di options
+      - kalau kosong → fallback (3 pertama / semua)
+    """
+    opts = list(options or [])
+    if not opts:
+        return []
+
+    if current is None:
+        cur = []
+    elif isinstance(current, (str, int)):
+        cur = [current]
+    else:
+        cur = list(current)
+
+    # buang nilai yang tidak ada di options
+    cur = [c for c in cur if c in opts]
+
+    if not cur:
+        if fallback_mode == "all":
+            cur = opts
+        else:
+            cur = opts[: min(some_k, len(opts))]
+
+    return cur
+
 # ===================== FILTERS =====================
 with st.sidebar:
     st.header("Filters")
 
-    # Date range (auto dari data) — normalize ke Jakarta & naive agar aman
+    # ---- Date range (auto dari data) ----
     if "tweet_created" in data.columns:
         dt_jkt = to_jkt_naive(data["tweet_created"])
         dt_min_ts = dt_jkt.min()
@@ -333,7 +355,7 @@ with st.sidebar:
         dt_min = date.today() - timedelta(days=30)
         dt_max = date.today()
 
-    # Normalisasi session_state.date_range agar selalu valid
+    # Normalisasi date_range di session_state
     if "date_range" not in st.session_state:
         st.session_state.date_range = (dt_min, dt_max)
     else:
@@ -341,7 +363,6 @@ with st.sidebar:
             st.session_state.date_range, dt_min, dt_max
         )
 
-    # Widget date_input, guaranteed aman
     date_range_raw = st.date_input(
         "Date range",
         value=st.session_state.date_range,
@@ -351,17 +372,38 @@ with st.sidebar:
     date_range = normalize_date_range(date_range_raw, dt_min, dt_max)
     st.session_state.date_range = date_range
 
+    # ---- Airlines & Sentiments ----
     airlines = sorted(data["airline"].dropna().unique().tolist()) if "airline" in data.columns else []
     sentiments = sorted(data["airline_sentiment"].dropna().unique().tolist()) if "airline_sentiment" in data.columns else []
 
-    if "flt_airline" not in st.session_state:
-        st.session_state.flt_airline = airlines[:3] if len(airlines) >= 3 else airlines
-    if "flt_sent" not in st.session_state:
-        st.session_state.flt_sent = sentiments
+    st.session_state.flt_airline = normalize_multiselect_default(
+        airlines,
+        st.session_state.get("flt_airline"),
+        fallback_mode="some",  # 3 pertama
+        some_k=3,
+    )
 
-    flt_airline = st.multiselect("Pick airlines", airlines, default=st.session_state.flt_airline)
-    flt_sent = st.multiselect("Pick sentiments", sentiments, default=st.session_state.flt_sent)
+    st.session_state.flt_sent = normalize_multiselect_default(
+        sentiments,
+        st.session_state.get("flt_sent"),
+        fallback_mode="all",
+    )
 
+    flt_airline = st.multiselect(
+        "Pick airlines",
+        airlines,
+        default=st.session_state.flt_airline,
+    )
+    flt_sent = st.multiselect(
+        "Pick sentiments",
+        sentiments,
+        default=st.session_state.flt_sent,
+    )
+
+    st.session_state.flt_airline = flt_airline
+    st.session_state.flt_sent = flt_sent
+
+    # ---- Hour filter ----
     if "hour" in data.columns:
         if "flt_hour" not in st.session_state or st.session_state.flt_hour is None:
             st.session_state.flt_hour = (0, 23)
@@ -370,23 +412,24 @@ with st.sidebar:
     else:
         flt_hour = (0, 23)
 
+    # ---- Keyword ----
     q = st.text_input("Cari kata (opsional, di text_clean)", value=st.session_state.get("q", ""))
     st.session_state.q = q
 
-    # Reset all
+    # ---- Reset all ----
     if st.button("Reset all filters"):
-        for k in ["date_range","flt_airline","flt_sent","flt_hour","q"]:
+        for k in ["date_range", "flt_airline", "flt_sent", "flt_hour", "q"]:
             st.session_state.pop(k, None)
         st.experimental_rerun()
 
-# Terapkan filter
+# ===================== TERAPKAN FILTER =====================
 df = data.copy()
 
-# Date filter (pakai kolom bantu _dt_jkt agar konsisten)
+# Date filter
 if "tweet_created" in df.columns and isinstance(date_range, tuple) and len(date_range) == 2:
     df["_dt_jkt"] = to_jkt_naive(df["tweet_created"])
-    d0 = pd.Timestamp(date_range[0])  # start (inclusive)
-    d1 = pd.Timestamp(date_range[1]) + pd.Timedelta(days=1)  # end exclusive
+    d0 = pd.Timestamp(date_range[0])
+    d1 = pd.Timestamp(date_range[1]) + pd.Timedelta(days=1)
     df = df[(df["_dt_jkt"] >= d0) & (df["_dt_jkt"] < d1)].drop(columns=["_dt_jkt"])
 
 # Airline & Sentiment
@@ -397,7 +440,6 @@ if flt_sent:
 
 # Hour filter
 if "hour" in df.columns and isinstance(flt_hour, tuple):
-    # Filter hanya data jam yang valid dan berada dalam rentang slider
     valid_hours = df[df["hour"].notna()]
     if not valid_hours.empty:
         df = df.loc[valid_hours.index][
@@ -431,9 +473,13 @@ if "issue" not in df.columns:
     df["issue"] = df[base_col].apply(tag_issue)
 
 # ===================== KPIs =====================
-kpi = kpi_metrics(df) if len(df) else {"total_tweets": 0, "neg_pct": 0.0, "top_neg_airline": "-", "delay_share_in_negative_pct": 0.0}
+kpi = kpi_metrics(df) if len(df) else {
+    "total_tweets": 0,
+    "neg_pct": 0.0,
+    "top_neg_airline": "-",
+    "delay_share_in_negative_pct": 0.0,
+}
 
-# Recompute delay share with our 'issue' tag (lebih robust)
 neg = df[df["airline_sentiment"] == "negative"] if "airline_sentiment" in df.columns else pd.DataFrame()
 delay_share = 100 * (len(neg[neg["issue"] == "delay"]) / len(neg)) if len(neg) else 0.0
 
@@ -472,7 +518,6 @@ col_dl4.download_button(
     data=trend_df.to_csv(index=False).encode("utf-8"), file_name="agg_hourly_trend.csv", mime="text/csv",
 )
 
-# Download config (reproducibility)
 cfg = {
     "theme": st.session_state.get("theme_name"),
     "filters": {
@@ -507,7 +552,6 @@ with tab_welcome:
     """)
     st.markdown("---")
 
-    ### A. Cara Menggunakan Filter
     st.subheader("📚 Panduan Penggunaan")
     st.info("""
         Gunakan menu **Filters** di sidebar (kiri) untuk menyesuaikan tampilan data:
@@ -519,37 +563,29 @@ with tab_welcome:
         * **Cari Kata:** Lakukan pencarian teks bebas pada kolom *text_clean* (teks yang sudah dibersihkan).
     """)
 
-    ### B. Interpretasi Key Performance Indicators (KPI)
     st.subheader("📊 Maksud Metrik KPI (Key Performance Indicators)")
-    
     col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
-    
     with col_kpi1:
         st.markdown("**Total Tweets**")
         st.caption("Jumlah total *tweet* yang tersisa setelah SEMUA filter di sidebar diterapkan.")
-    
     with col_kpi2:
         st.markdown("**% Negative**")
         st.caption("Persentase *tweet* bernada negatif dari Total Tweets yang lolos filter. Ini adalah metrik utama kepuasan.")
-    
     with col_kpi3:
         st.markdown("**Top Airline (Neg)**")
-        st.caption("Maskapai dengan jumlah *tweet* negatif paling banyak (bukan persentase). Fokus untuk perbaikan segera.")
-    
+        st.caption("Maskapai dengan jumlah *tweet* negatif paling banyak (bukan persentase).")
     with col_kpi4:
         st.markdown("**Delay in Negative**")
-        st.caption("Persentase *tweet* negatif yang secara spesifik membahas isu **'delay'** (keterlambatan/pembatalan). Menunjukkan urgensi masalah waktu.")
-    
+        st.caption("Persentase *tweet* negatif yang secara spesifik membahas isu **'delay'**.")
+
     st.markdown("---")
-    
-    ### C. Detail Visualisasi
     st.subheader("🎨 Apa yang Ditampilkan di Setiap Tab?")
     st.markdown("""
     * **Overview:** Distribusi sentimen keseluruhan (Grafik Bar dan Pie).
-    * **Time Trend:** Tren jumlah *tweet* per jam, dipecah berdasarkan sentimen. Berguna untuk mengetahui waktu puncak komplain atau pujian (misalnya, saat pagi atau malam).
+    * **Time Trend:** Tren jumlah *tweet* per jam, dipecah berdasarkan sentimen.
     * **Map:** Visualisasi lokasi *tweet* (jika koordinat tersedia dalam data).
-    * **Topics:** Analisis kata kunci (Word Cloud) dan grafik Topics vs Sentiment (membandingkan isu 'delay', 'refund', 'bagasi', 'service').
-    * **Data Quality:** Informasi teknis tentang data mentah (jumlah baris, *missing values*, duplikasi).
+    * **Topics:** Word Cloud + Topics vs Sentiment.
+    * **Data Quality:** Ringkasan kualitas data (missing, duplikasi, dll).
     """)
 
 # =============== OVERVIEW ===============
@@ -609,8 +645,14 @@ with tab_geo:
 with tab_topics:
     st.subheader("Word Cloud & Topic Analysis")
     c1, c2 = st.columns(2)
-    pick_airline = c1.selectbox("Airline for word cloud", ["(all)"] + sorted(df["airline"].dropna().unique().tolist()) if "airline" in df.columns else ["(all)"])
-    pick_sent = c2.selectbox("Sentiment", ["(all)"] + sorted(df["airline_sentiment"].dropna().unique().tolist()) if "airline_sentiment" in df.columns else ["(all)"])
+    pick_airline = c1.selectbox(
+        "Airline for word cloud",
+        ["(all)"] + (sorted(df["airline"].dropna().unique().tolist()) if "airline" in df.columns else []),
+    )
+    pick_sent = c2.selectbox(
+        "Sentiment",
+        ["(all)"] + (sorted(df["airline_sentiment"].dropna().unique().tolist()) if "airline_sentiment" in df.columns else []),
+    )
 
     wc_df = df.copy()
     if pick_airline != "(all)" and "airline" in wc_df.columns:
@@ -618,11 +660,15 @@ with tab_topics:
     if pick_sent != "(all)" and "airline_sentiment" in wc_df.columns:
         wc_df = wc_df[wc_df["airline_sentiment"] == pick_sent]
 
-    # Generate the word cloud if there is text to process
     if "text_clean" in wc_df.columns and len(wc_df) > 0:
         text_blob = " ".join(wc_df["text_clean"].astype(str).tolist()).strip()
         if text_blob:
-            wc = WordCloud(stopwords=STOPWORDS, background_color=THEME["wc_bg"], width=1000, height=400).generate(text_blob)
+            wc = WordCloud(
+                stopwords=STOPWORDS,
+                background_color=THEME["wc_bg"],
+                width=1000,
+                height=400,
+            ).generate(text_blob)
             fig, ax = plt.subplots(figsize=(10, 4), facecolor=THEME["mpl_face"])
             ax.imshow(wc)
             ax.axis("off")
@@ -633,7 +679,6 @@ with tab_topics:
     else:
         st.info("Tidak ada teks untuk wordcloud.")
 
-    # Topic vs Sentiment Analysis (using aggregated data)
     st.subheader("Topic vs Sentiment")
     topic_df = agg_topic_vs_sentiment(df) if len(df) else pd.DataFrame(columns=["issue","airline_sentiment","tweets"])
     if len(topic_df):
@@ -643,8 +688,12 @@ with tab_topics:
 
     st.markdown("**Top Issues (simple keyword buckets)**")
     if len(df):
-        issue_tab = (df.groupby(["issue","airline_sentiment"]).size().reset_index(name="tweets")
-                         .sort_values("tweets", ascending=False))
+        issue_tab = (
+            df.groupby(["issue", "airline_sentiment"])
+              .size()
+              .reset_index(name="tweets")
+              .sort_values("tweets", ascending=False)
+        )
         st.dataframe(issue_tab, use_container_width=True)
     else:
         st.info("Tidak ada data untuk dihitung.")
@@ -652,19 +701,19 @@ with tab_topics:
 # =============== DATA QUALITY ===============
 with tab_quality:
     st.subheader("Data Quality Summary")
-    q = {
+    q_info = {
         "shape": f"{data.shape[0]} x {data.shape[1]}",
         "duplicates_total": int(data.duplicated().sum()),
         "avg_missing_%": round(100 * data.isna().mean().mean(), 2),
     }
     if "airline_sentiment" in data.columns:
         class_bal = data["airline_sentiment"].value_counts(normalize=True).mul(100).round(1).to_dict()
-        q["class_balance_%"] = class_bal
+        q_info["class_balance_%"] = class_bal
     if "lang" in data.columns:
         lang_share = data["lang"].value_counts(normalize=True).mul(100).round(1).to_dict()
-        q["language_share_%"] = lang_share
+        q_info["language_share_%"] = lang_share
 
-    st.write(q)
+    st.write(q_info)
 
     if "airline" in data.columns and len(data):
         share = data["airline"].value_counts(normalize=True).max()
