@@ -95,6 +95,7 @@ st.markdown(
       --button-bg: {THEME['button']};
       --button-hover: #333;
       --input-bg: {THEME['input_bg']}; 
+      --muted: {THEME['muted']};
     }}
     html, body, [data-testid="stAppViewContainer"] {{
       background-color: var(--bg);
@@ -112,7 +113,6 @@ st.markdown(
     }}
     
     /* === PERBAIKAN: Menargetkan SEMUA Label Filter di Sidebar === */
-    /* Menargetkan label statis ('Filters') dan label dinamis (Date Range, Pick Airlines, dll.) */
     [data-testid="stSidebar"] .stMarkdown > p,
     [data-testid="stSidebar"] label p,
     [data-testid="stSidebar"] [data-testid="stFileUploader"] label p, 
@@ -128,16 +128,14 @@ st.markdown(
     
     /* === PERBAIKAN KPI: Memaksa warna teks metric menjadi warna utama === */
     [data-testid="stMetricValue"] {{
-        color: var(--text) !important; /* Angka besar: 6,196 */
+        color: var(--text) !important;
         font-weight: 700;
     }}
     [data-testid="stMetricLabel"] {{
-        color: var(--muted) !important; /* Label kecil: Total Tweets */
+        color: var(--muted) !important;
         font-weight: 500;
     }}
-    /* === END PERBAIKAN KPI === */
 
-    /* Pastikan semua teks umum terlihat */
     .stMetric, .stMarkdown, .stCaption, .stDataFrame, .stPlotlyChart {{
       color: var(--text);
     }}
@@ -229,12 +227,88 @@ if data_raw is None or len(data_raw) == 0:
 # Pipeline clean/transform (cached)
 data = _clean(data_raw)
 
-# ===================== TZ UTILS (FIX ERROR) =====================
+# ===================== TZ UTILS & DATE RANGE NORMALIZER =====================
 def to_jkt_naive(series: pd.Series) -> pd.Series:
-    """Konversi apa pun ke datetime UTC → Asia/Jakarta → drop tz (naive)."""
-    s = pd.to_datetime(series, errors="coerce", utc=True)
-    s = s.dt.tz_convert("Asia/Jakarta")
-    return s.dt.tz_localize(None)
+    """
+    Konversi apa pun ke datetime → (jika perlu) Asia/Jakarta → naive (tanpa tz).
+    Aman untuk:
+      - sudah tz-aware
+      - masih naive
+    """
+    s = pd.to_datetime(series, errors="coerce")
+    try:
+        if s.dt.tz is not None:
+            # sudah punya tz, convert ke Asia/Jakarta lalu buang tz
+            s = s.dt.tz_convert("Asia/Jakarta").dt.tz_localize(None)
+        else:
+            # naive: traktir sebagai waktu lokal apa adanya (tidak ubah tz)
+            pass
+    except Exception:
+        # fallback: kalau ada masalah, coba buang tz saja
+        try:
+            s = s.dt.tz_localize(None)
+        except Exception:
+            pass
+    return s
+
+def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
+    """
+    Pastikan nilai date_range:
+      - selalu tuple (start_date, end_date)
+      - berada dalam [dt_min, dt_max]
+      - tahan input: single date, list, tuple, None
+    """
+    # pastikan dt_min/dt_max adalah date
+    if isinstance(dt_min, datetime):
+        dt_min = dt_min.date()
+    if isinstance(dt_max, datetime):
+        dt_max = dt_max.date()
+
+    if raw is None:
+        return (dt_min, dt_max)
+
+    # Single value (date/datetime) → (start, end)
+    if isinstance(raw, (date, datetime)):
+        start = raw
+        end = raw
+    elif isinstance(raw, (list, tuple)):
+        if len(raw) == 0:
+            return (dt_min, dt_max)
+        elif len(raw) == 1:
+            start = raw[0]
+            end = raw[0]
+        else:
+            start, end = raw[0], raw[1]
+    else:
+        return (dt_min, dt_max)
+
+    # convert datetime → date
+    if isinstance(start, datetime):
+        start = start.date()
+    if isinstance(end, datetime):
+        end = end.date()
+
+    # default jika None
+    if start is None:
+        start = dt_min
+    if end is None:
+        end = dt_max
+
+    # clamp ke [dt_min, dt_max]
+    if start < dt_min:
+        start = dt_min
+    if start > dt_max:
+        start = dt_max
+    if end < dt_min:
+        end = dt_min
+    if end > dt_max:
+        end = dt_max
+
+    # kalau range terbalik, reset ke full range
+    if start > end:
+        start, end = dt_min, dt_max
+
+    return (start, end)
 
 # ===================== FILTERS =====================
 with st.sidebar:
@@ -243,15 +317,38 @@ with st.sidebar:
     # Date range (auto dari data) — normalize ke Jakarta & naive agar aman
     if "tweet_created" in data.columns:
         dt_jkt = to_jkt_naive(data["tweet_created"])
-        dt_min = (dt_jkt.min() or pd.Timestamp(date.today() - timedelta(days=30))).date()
-        dt_max = (dt_jkt.max() or pd.Timestamp(date.today())).date()
+        dt_min_ts = dt_jkt.min()
+        dt_max_ts = dt_jkt.max()
+
+        if pd.isna(dt_min_ts):
+            dt_min = date.today() - timedelta(days=30)
+        else:
+            dt_min = dt_min_ts.date()
+
+        if pd.isna(dt_max_ts):
+            dt_max = date.today()
+        else:
+            dt_max = dt_max_ts.date()
     else:
         dt_min = date.today() - timedelta(days=30)
         dt_max = date.today()
 
+    # Normalisasi session_state.date_range agar selalu valid
     if "date_range" not in st.session_state:
         st.session_state.date_range = (dt_min, dt_max)
-    date_range = st.date_input("Date range", value=st.session_state.date_range, min_value=dt_min, max_value=dt_max)
+    else:
+        st.session_state.date_range = normalize_date_range(
+            st.session_state.date_range, dt_min, dt_max
+        )
+
+    # Widget date_input, guaranteed aman
+    date_range_raw = st.date_input(
+        "Date range",
+        value=st.session_state.date_range,
+        min_value=dt_min,
+        max_value=dt_max,
+    )
+    date_range = normalize_date_range(date_range_raw, dt_min, dt_max)
     st.session_state.date_range = date_range
 
     airlines = sorted(data["airline"].dropna().unique().tolist()) if "airline" in data.columns else []
@@ -288,7 +385,7 @@ df = data.copy()
 # Date filter (pakai kolom bantu _dt_jkt agar konsisten)
 if "tweet_created" in df.columns and isinstance(date_range, tuple) and len(date_range) == 2:
     df["_dt_jkt"] = to_jkt_naive(df["tweet_created"])
-    d0 = pd.Timestamp(date_range[0])  # naive
+    d0 = pd.Timestamp(date_range[0])  # start (inclusive)
     d1 = pd.Timestamp(date_range[1]) + pd.Timedelta(days=1)  # end exclusive
     df = df[(df["_dt_jkt"] >= d0) & (df["_dt_jkt"] < d1)].drop(columns=["_dt_jkt"])
 
@@ -397,7 +494,6 @@ col_dl5.download_button(
 st.divider()
 
 # ===================== TABS =====================
-# Menambahkan tab_welcome sebagai yang pertama
 tab_welcome, tab_overview, tab_time, tab_geo, tab_topics, tab_quality = st.tabs(
     ["👋 Selamat Datang", "Overview", "Time Trend", "Map", "Topics", "Data Quality"]
 )
