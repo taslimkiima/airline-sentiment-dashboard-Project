@@ -1,4 +1,4 @@
-# app.py — Airline Tweet Sentiment Dashboard (FINAL)
+# app.py — Airline Tweet Sentiment Dashboard (FINAL KECILKAN TOMBOL DOWNLOAD)
 
 import os
 import json
@@ -181,26 +181,28 @@ st.markdown(
       background-color: var(--button-hover);
     }}
 
-    /* ====== PERKECIL TOMBOL DOWNLOAD ====== */
+    /* ====== PERKECIL & RAPIKAN TOMBOL DOWNLOAD ====== */
     [data-testid="stDownloadButton"] > button {{
-        padding: 6px 12px !important;
-        font-size: 0.80rem !important;
-        border-radius: 6px !important;
+        padding: 4px 10px !important;
+        font-size: 0.72rem !important;
+        line-height: 1.1 !important;
+        border-radius: 999px !important;      /* pill style */
         border: 1px solid var(--border) !important;
         background-color: var(--card) !important;
         color: var(--text) !important;
-        min-height: 32px !important;
-        height: 32px !important;
+        min-height: 26px !important;
+        height: 26px !important;
+        white-space: nowrap !important;       /* teks satu baris */
     }}
     [data-testid="stDownloadButton"] > button:hover {{
         background-color: #3b4252 !important;
         border-color: #6b7280 !important;
     }}
 
-    /* ====== SLIDER HOUR LEBIH RAPIH & TANPA BOX PUTIH ====== */
+    /* ====== SLIDER HOUR TANPA BOX PUTIH ====== */
     [data-testid="stSlider"] > div {{
         background-color: transparent !important;
-        border: none !important;              /* hilangkan kotak putih */
+        border: none !important;
         box-shadow: none !important;
     }}
     [data-baseweb="slider"] span {{
@@ -261,10 +263,7 @@ data = _clean(data_raw)
 
 # ===================== HELPER FUNCTIONS =====================
 def to_jkt_naive(series: pd.Series) -> pd.Series:
-    """
-    Konversi ke datetime → jika sudah tz-aware, convert ke Asia/Jakarta lalu buang tz.
-    Aman untuk string date, tz-aware, atau naive.
-    """
+    """Konversi ke datetime Asia/Jakarta lalu buang tz."""
     s = pd.to_datetime(series, errors="coerce")
     try:
         if s.dt.tz is not None:
@@ -277,11 +276,7 @@ def to_jkt_naive(series: pd.Series) -> pd.Series:
     return s
 
 def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
-    """
-    Pastikan date_range:
-      - selalu (start_date, end_date)
-      - di-clamp ke [dt_min, dt_max]
-    """
+    """Pastikan date_range valid & dalam [dt_min, dt_max]."""
     if isinstance(dt_min, datetime):
         dt_min = dt_min.date()
     if isinstance(dt_max, datetime):
@@ -314,15 +309,10 @@ def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
     if end is None:
         end = dt_max
 
-    # clamp ke rentang min–max
-    if start < dt_min:
-        start = dt_min
-    if start > dt_max:
-        start = dt_max
-    if end < dt_min:
-        end = dt_min
-    if end > dt_max:
-        end = dt_max
+    if start < dt_min: start = dt_min
+    if start > dt_max: start = dt_max
+    if end < dt_min:   end = dt_min
+    if end > dt_max:   end = dt_max
 
     if start > end:
         start, end = dt_min, dt_max
@@ -332,55 +322,35 @@ def normalize_date_range(raw, dt_min: date, dt_max: date) -> tuple[date, date]:
 def normalize_multiselect_default(
     options: list,
     current,
-    fallback_mode: str = "all",  # "all" → pilih semua kalau kosong
+    fallback_mode: str = "all",
     some_k: int = 3,
 ):
-    """
-    Pastikan default multiselect:
-      - hanya berisi nilai yg ada di options
-      - kalau kosong → fallback (all / some)
-    """
+    """Pastikan default multiselect hanya opsi valid + fallback kalau kosong."""
     opts = list(options or [])
     if not opts:
         return []
-
     if current is None:
         cur = []
     elif isinstance(current, (str, int)):
         cur = [current]
     else:
         cur = list(current)
-
-    # filter hanya yang ada di options
     cur = [c for c in cur if c in opts]
-
     if not cur:
-        if fallback_mode == "all":
-            cur = opts
-        else:
-            cur = opts[: min(some_k, len(opts))]
-
+        cur = opts if fallback_mode == "all" else opts[: min(some_k, len(opts))]
     return cur
 
 # ===================== FILTERS =====================
 with st.sidebar:
     st.header("Filters")
 
-    # ---- Date range (auto dari data) ----
+    # ---- Date range ----
     if "tweet_created" in data.columns:
         dt_jkt = to_jkt_naive(data["tweet_created"])
         dt_min_ts = dt_jkt.min()
         dt_max_ts = dt_jkt.max()
-
-        if pd.isna(dt_min_ts):
-            dt_min = date.today() - timedelta(days=30)
-        else:
-            dt_min = dt_min_ts.date()
-
-        if pd.isna(dt_max_ts):
-            dt_max = date.today()
-        else:
-            dt_max = dt_max_ts.date()
+        dt_min = (dt_min_ts.date() if pd.notna(dt_min_ts) else date.today() - timedelta(days=30))
+        dt_max = (dt_max_ts.date() if pd.notna(dt_max_ts) else date.today())
     else:
         dt_min = date.today() - timedelta(days=30)
         dt_max = date.today()
@@ -393,50 +363,30 @@ with st.sidebar:
         )
 
     date_range_raw = st.date_input(
-        "Date range",
-        value=st.session_state.date_range,
-        min_value=dt_min,
-        max_value=dt_max,
+        "Date range", value=st.session_state.date_range,
+        min_value=dt_min, max_value=dt_max,
     )
     date_range = normalize_date_range(date_range_raw, dt_min, dt_max)
     st.session_state.date_range = date_range
 
     # ---- Airlines & Sentiments ----
-    airlines = (
-        sorted(data["airline"].dropna().unique().tolist())
-        if "airline" in data.columns else []
-    )
-    sentiments = (
-        sorted(data["airline_sentiment"].dropna().unique().tolist())
-        if "airline_sentiment" in data.columns else []
-    )
+    airlines = sorted(data["airline"].dropna().unique().tolist()) if "airline" in data.columns else []
+    sentiments = sorted(data["airline_sentiment"].dropna().unique().tolist()) if "airline_sentiment" in data.columns else []
 
     st.session_state.flt_airline = normalize_multiselect_default(
-        airlines,
-        st.session_state.get("flt_airline"),
-        fallback_mode="all",
+        airlines, st.session_state.get("flt_airline"), fallback_mode="all"
     )
     st.session_state.flt_sent = normalize_multiselect_default(
-        sentiments,
-        st.session_state.get("flt_sent"),
-        fallback_mode="all",
+        sentiments, st.session_state.get("flt_sent"), fallback_mode="all"
     )
 
-    flt_airline = st.multiselect(
-        "Pick airlines",
-        airlines,
-        default=st.session_state.flt_airline,
-    )
-    flt_sent = st.multiselect(
-        "Pick sentiments",
-        sentiments,
-        default=st.session_state.flt_sent,
-    )
+    flt_airline = st.multiselect("Pick airlines", airlines, default=st.session_state.flt_airline)
+    flt_sent = st.multiselect("Pick sentiments", sentiments, default=st.session_state.flt_sent)
 
     st.session_state.flt_airline = flt_airline
     st.session_state.flt_sent = flt_sent
 
-    # ---- Hour filter (rapih) ----
+    # ---- Hour filter ----
     if "hour" in data.columns:
         if "flt_hour" not in st.session_state or st.session_state.flt_hour is None:
             st.session_state.flt_hour = (0, 23)
@@ -444,8 +394,7 @@ with st.sidebar:
         st.markdown("**Hour of day**")
         flt_hour = st.slider(
             "",
-            0,
-            23,
+            0, 23,
             st.session_state.flt_hour,
             format="%02d:00",
             label_visibility="collapsed",
@@ -524,16 +473,14 @@ kpi = kpi_metrics(df) if len(df) else {
     "top_neg_airline": "-",
     "delay_share_in_negative_pct": 0.0,
 }
-
 neg = df[df["airline_sentiment"] == "negative"] if "airline_sentiment" in df.columns else pd.DataFrame()
 delay_share = 100 * (len(neg[neg["issue"] == "delay"]) / len(neg)) if len(neg) else 0.0
 
-# buat kolom KPI, sedikit lebarkan yang kanan
 c1, c2, c3, c4 = st.columns([1, 1, 1.2, 1.2])
-c1.metric("Total Tweets", f"{kpi['total_tweets']:,}", help="Jumlah tweet yang lolos semua filter aktif.")
-c2.metric("% Negative", f"{kpi['neg_pct']:.1f}%", help="% tweet bernada negatif dari total tweet (setelah filter).")
-c3.metric("Top Airline (Neg)", kpi["top_neg_airline"], help="Maskapai dengan jumlah tweet negatif terbanyak.")
-c4.metric("Delay in Negative", f"{delay_share:.1f}%", help="Share isu 'delay' di dalam seluruh tweet negatif.")
+c1.metric("Total Tweets", f"{kpi['total_tweets']:,}")
+c2.metric("% Negative", f"{kpi['neg_pct']:.1f}%")
+c3.metric("Top Airline (Neg)", kpi["top_neg_airline"])
+c4.metric("Delay in Negative", f"{delay_share:.1f}%")
 
 # ===================== DOWNLOAD SECTION =====================
 st.markdown("### ⬇️ Download")
@@ -541,7 +488,7 @@ col_dl1, col_dl2, col_dl3, col_dl4, col_dl5 = st.columns(5)
 
 clean_csv = data.to_csv(index=False).encode("utf-8")
 col_dl1.download_button(
-    label="Download CLEANED\nCSV",
+    label="CLEANED CSV",
     data=clean_csv,
     file_name=f"tweets_clean_{datetime.now().date()}.csv",
     mime="text/csv",
@@ -549,7 +496,7 @@ col_dl1.download_button(
 
 filtered_csv = df.to_csv(index=False).encode("utf-8")
 col_dl2.download_button(
-    label="Download FILTERED\nCSV",
+    label="FILTERED CSV",
     data=filtered_csv,
     file_name=f"tweets_filtered_{datetime.now().date()}.csv",
     mime="text/csv",
@@ -560,13 +507,13 @@ trend_df = agg_hour_trend(df) if len(df) else pd.DataFrame(columns=["hour", "air
 topic_df_dl = agg_topic_vs_sentiment(df) if len(df) else pd.DataFrame(columns=["issue", "airline_sentiment", "tweets"])
 
 col_dl3.download_button(
-    label="Download\nagg_sentiment.csv",
+    label="agg_sentiment.csv",
     data=sent_df.to_csv(index=False).encode("utf-8"),
     file_name="agg_sentiment.csv",
     mime="text/csv",
 )
 col_dl4.download_button(
-    label="Download\nagg_hourly_trend.csv",
+    label="agg_hourly_trend.csv",
     data=trend_df.to_csv(index=False).encode("utf-8"),
     file_name="agg_hourly_trend.csv",
     mime="text/csv",
@@ -584,7 +531,7 @@ cfg = {
     "generated_at": datetime.utcnow().isoformat() + "Z",
 }
 col_dl5.download_button(
-    "Download CONFIG\n(.json)",
+    "CONFIG (.json)",
     data=json.dumps(cfg, indent=2).encode("utf-8"),
     file_name="dashboard_config.json",
     mime="application/json",
